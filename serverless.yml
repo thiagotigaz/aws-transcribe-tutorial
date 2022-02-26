@@ -1,0 +1,42 @@
+org: thiagotigaz
+app: aws-transcribe-tutorial
+service: aws-transcribe-tutorial
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs14.x
+  environment:
+    INPUT_BUCKET: limascloud-transcribe-input-${opt:stage, self:provider.stage}
+    OUTPUT_BUCKET: limascloud-transcribe-output-${opt:stage, self:provider.stage}
+  s3:
+    inputBucket:
+      name: ${self:provider.environment.INPUT_BUCKET}
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - s3:PutObject
+            - s3:GetObject
+          Resource:
+            - 'arn:aws:s3:::${self:provider.environment.INPUT_BUCKET}/*'
+            - 'arn:aws:s3:::${self:provider.environment.OUTPUT_BUCKET}/*'
+        - Effect: Allow
+          Action:
+            - transcribe:StartTranscriptionJob
+          Resource: '*'
+
+functions:
+  transcribe:
+    handler: handler.transcribe
+    events:
+      - s3: inputBucket
+
+resources:
+  Resources:
+    S3BucketOutputBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:provider.environment.OUTPUT_BUCKET}
